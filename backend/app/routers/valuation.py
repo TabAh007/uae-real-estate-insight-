@@ -4,8 +4,10 @@ from fastapi import APIRouter, HTTPException
 
 from app.schemas import (
     InvestmentScoreResponse,
+    PropertyAnalysis,
     RentalYieldResponse,
     ScoreComponent,
+    Transaction,
     ValuationRequest,
     ValuationResponse,
 )
@@ -219,3 +221,29 @@ async def investment_score(payload: ValuationRequest) -> InvestmentScoreResponse
         sale_source=sale_source,
         rent_source=rent_source,
     )
+
+
+@router.post("/analyze", response_model=PropertyAnalysis)
+async def analyze(payload: Transaction) -> PropertyAnalysis:
+    """Everything for one selected property in a single call: valuation verdict
+    (its price vs. comparables), rental yield, and investment score."""
+    req = ValuationRequest(
+        area=payload.area,
+        property_type=payload.property_type,
+        size_sqm=payload.size_sqm,
+        bedrooms=payload.bedrooms,
+        asking_price_aed=payload.price_aed,
+    )
+
+    valuation = await estimate(req)  # 404s only if the area/type has no sales at all
+
+    try:
+        ry: RentalYieldResponse | None = await rental_yield(req)
+    except HTTPException:
+        ry = None  # no rent data for this area/type — yield simply omitted
+    try:
+        score: InvestmentScoreResponse | None = await investment_score(req)
+    except HTTPException:
+        score = None
+
+    return PropertyAnalysis(property=payload, valuation=valuation, rental_yield=ry, investment_score=score)

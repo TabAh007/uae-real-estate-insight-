@@ -50,6 +50,9 @@ class Transaction(BaseModel):
     size_sqm: float
     price_aed: float
     transaction_date: str
+    nearest_metro: str | None = None
+    nearest_mall: str | None = None
+    nearest_landmark: str | None = None
 
     @property
     def price_per_sqm(self) -> float:
@@ -159,3 +162,11 @@ class RentalYieldResponse(BaseModel):
         "units. Ignores service charges, agency/DLD fees, and vacancy — net "
         "yield is lower. Not investment advice."
     )
+
+
+class PropertyAnalysis(BaseModel):
+    """Everything about one selected property, in a single response."""
+    property: Transaction
+    valuation: ValuationResponse
+    rental_yield: RentalYieldResponse | None = None
+    investment_score: InvestmentScoreResponse | None = None

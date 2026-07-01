@@ -26,7 +26,15 @@ COLUMN_CANDIDATES = {
     "size_sqm": ["ACTUAL_AREA", "PROCEDURE_AREA", "Property Size (sq.m)", "procedure_area"],
     "rooms": ["ROOMS_EN", "Room(s)", "rooms_en"],
     "date": ["INSTANCE_DATE", "Transaction Date", "instance_date"],
+    "nearest_metro": ["NEAREST_METRO_EN", "Nearest Metro"],
+    "nearest_mall": ["NEAREST_MALL_EN", "Nearest Mall"],
+    "nearest_landmark": ["NEAREST_LANDMARK_EN", "Nearest Landmark"],
 }
+
+
+def _clean(value: str | None) -> str | None:
+    value = (value or "").strip()
+    return value or None
 
 
 def _row_to_transaction(row: dict[str, str]) -> Transaction | None:
@@ -42,6 +50,9 @@ def _row_to_transaction(row: dict[str, str]) -> Transaction | None:
         size_sqm=size,
         price_aed=price,
         transaction_date=(csv_utils.pick(row, COLUMN_CANDIDATES["date"]) or "").strip(),
+        nearest_metro=_clean(csv_utils.pick(row, COLUMN_CANDIDATES["nearest_metro"])),
+        nearest_mall=_clean(csv_utils.pick(row, COLUMN_CANDIDATES["nearest_mall"])),
+        nearest_landmark=_clean(csv_utils.pick(row, COLUMN_CANDIDATES["nearest_landmark"])),
     )
 
 

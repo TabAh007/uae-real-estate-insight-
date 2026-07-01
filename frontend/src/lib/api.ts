@@ -29,6 +29,9 @@ export interface Transaction {
   size_sqm: number;
   price_aed: number;
   transaction_date: string;
+  nearest_metro?: string | null;
+  nearest_mall?: string | null;
+  nearest_landmark?: string | null;
 }
 
 export interface ValuationResponse {
@@ -75,6 +78,27 @@ export interface Facets {
 
 export function getFacets(): Promise<Facets> {
   return apiFetch(`/properties/facets`);
+}
+
+export interface TransactionsResponse {
+  transactions: Transaction[];
+  source: string;
+}
+
+export function listProperties(area: string, propertyType: string, limit = 60): Promise<TransactionsResponse> {
+  const q = new URLSearchParams({ area, property_type: propertyType, limit: String(limit) });
+  return apiFetch(`/properties/list?${q.toString()}`);
+}
+
+export interface PropertyAnalysis {
+  property: Transaction;
+  valuation: ValuationResponse;
+  rental_yield: RentalYieldResponse | null;
+  investment_score: InvestmentScoreResponse | null;
+}
+
+export function analyzeProperty(property: Transaction): Promise<PropertyAnalysis> {
+  return apiFetch(`/valuation/analyze`, { method: "POST", body: JSON.stringify(property) });
 }
 
 export interface SchoolNearby {
