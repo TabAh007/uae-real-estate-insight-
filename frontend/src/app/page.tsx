@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import {
+  estimateRentalYield,
   estimateValuation,
   geocodeAddress,
   getFacets,
   getNeighborhood,
   type NeighborhoodResponse,
+  type RentalYieldResponse,
   type ValuationResponse,
 } from "@/lib/api";
 
@@ -34,9 +36,11 @@ export default function Home() {
   const [sizeSqm, setSizeSqm] = useState(90);
   const [askingPrice, setAskingPrice] = useState<number | "">("");
   const [valuation, setValuation] = useState<ValuationResponse | null>(null);
+  const [yieldResult, setYieldResult] = useState<RentalYieldResponse | null>(null);
 
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [loadingValuation, setLoadingValuation] = useState(false);
+  const [loadingYield, setLoadingYield] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -86,6 +90,20 @@ export default function Home() {
       setError(err instanceof Error ? err.message : "Failed to estimate valuation");
     } finally {
       setLoadingValuation(false);
+    }
+  }
+
+  async function handleYield() {
+    setError(null);
+    setLoadingYield(true);
+    try {
+      const result = await estimateRentalYield({ area, property_type: propertyType, size_sqm: sizeSqm });
+      setYieldResult(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to estimate rental yield");
+      setYieldResult(null);
+    } finally {
+      setLoadingYield(false);
     }
   }
 
@@ -158,13 +176,22 @@ export default function Home() {
             onChange={(e) => setAskingPrice(e.target.value === "" ? "" : Number(e.target.value))}
             placeholder="Asking price (AED) — optional"
           />
-          <button
-            onClick={handleEstimate}
-            disabled={loadingValuation}
-            className="rounded bg-blue-600 px-3 py-2 text-sm text-white disabled:opacity-50"
-          >
-            {loadingValuation ? "Estimating…" : "Estimate value"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleEstimate}
+              disabled={loadingValuation}
+              className="flex-1 rounded bg-blue-600 px-3 py-2 text-sm text-white disabled:opacity-50"
+            >
+              {loadingValuation ? "Estimating…" : "Estimate value"}
+            </button>
+            <button
+              onClick={handleYield}
+              disabled={loadingYield}
+              className="flex-1 rounded bg-emerald-600 px-3 py-2 text-sm text-white disabled:opacity-50"
+            >
+              {loadingYield ? "Calculating…" : "Rental yield"}
+            </button>
+          </div>
         </section>
 
         {valuation && (
@@ -182,6 +209,22 @@ export default function Home() {
             <p className="text-xs text-gray-400">{valuation.method}</p>
             <p className="text-xs text-gray-400">{valuation.disclaimer}</p>
             <p className="text-xs text-gray-400">Source: {valuation.source}</p>
+          </section>
+        )}
+
+        {yieldResult && (
+          <section className="flex flex-col gap-2 rounded border border-emerald-200 bg-emerald-50 p-3">
+            <p className="text-sm">
+              Gross rental yield: <strong className="text-emerald-700">{yieldResult.gross_yield_pct}%</strong>
+            </p>
+            <p className="text-xs text-gray-600">
+              Est. annual rent AED {yieldResult.estimated_annual_rent_aed.toLocaleString()} on est. value AED{" "}
+              {yieldResult.estimated_sale_value_aed.toLocaleString()}
+            </p>
+            <p className="text-xs text-gray-500">
+              {yieldResult.rent_comps_used} rent contracts · {yieldResult.sale_comps_used} sales
+            </p>
+            <p className="text-xs text-gray-400">{yieldResult.disclaimer}</p>
           </section>
         )}
 

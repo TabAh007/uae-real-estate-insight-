@@ -91,3 +91,25 @@ export function estimateValuation(payload: ValuationRequest): Promise<ValuationR
     body: JSON.stringify(payload),
   });
 }
+
+export interface RentalYieldResponse {
+  area: string;
+  property_type: string;
+  size_sqm: number;
+  estimated_annual_rent_aed: number;
+  estimated_sale_value_aed: number;
+  gross_yield_pct: number;
+  sale_comps_used: number;
+  rent_comps_used: number;
+  method: string;
+  sale_source: string;
+  rent_source: string;
+  disclaimer: string;
+}
+
+export function estimateRentalYield(payload: ValuationRequest): Promise<RentalYieldResponse> {
+  return apiFetch(`/valuation/rental-yield`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

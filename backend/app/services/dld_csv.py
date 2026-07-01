@@ -1,26 +1,20 @@
-"""Loads Dubai Land Department open-data CSV exports (no API key required).
+"""Loads Dubai Land Department sales-transaction CSV exports (no API key).
 
-Download a CSV from https://dubailand.gov.ae/en/open-data/real-estate-data/
-(Transaction Details -> Download as CSV) and drop it in backend/data/. Every
-`*.csv` there is loaded on startup and exposed the same way as the Dubai Pulse
-API, so routers can treat both identically.
-
-If the portal renames a column in a future export, adjust COLUMN_MAP below.
+Download from https://dubailand.gov.ae/en/open-data/real-estate-data/
+(Transaction Details -> Download as CSV) and drop it in backend/data/. Rent
+CSVs in the same folder are ignored here (see dld_rent_csv.py).
 """
 import csv
 import glob
 import os
-import re
 
 from app.schemas import Transaction
+from app.services import csv_utils
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
 
-# DLD exports come in two header styles: the machine names in the "Download as
-# CSV" file (AREA_EN, TRANS_VALUE, ...) and the human-readable names shown in
-# the web table (Area, Amount, ...). Each field lists the candidate headers in
-# priority order; the loader uses the first one present in the file, so either
-# export — and roughly the Dubai Pulse API shape — works unchanged.
+# DLD exports use either machine names (from "Download as CSV") or the web
+# table's display names. Each field lists candidates in priority order.
 COLUMN_CANDIDATES = {
     "area": ["AREA_EN", "Area", "area_name_en"],
     # Sub type (Flat/Villa) is finer than PROP_TYPE_EN (Unit/Building/Land).
@@ -32,46 +26,19 @@ COLUMN_CANDIDATES = {
 }
 
 
-def _pick(row: dict[str, str], field: str) -> str | None:
-    for header in COLUMN_CANDIDATES[field]:
-        if header in row and row[header] not in (None, ""):
-            return row[header]
-    return None
-
-
-def _parse_rooms(value: str | None) -> int | None:
-    if not value:
-        return None
-    text = value.strip().lower()
-    if "studio" in text:
-        return 0
-    match = re.search(r"\d+", text)
-    return int(match.group()) if match else None
-
-
-def _parse_float(value: str | None) -> float | None:
-    if not value:
-        return None
-    cleaned = value.replace(",", "").strip()
-    try:
-        return float(cleaned)
-    except ValueError:
-        return None
-
-
 def _row_to_transaction(row: dict[str, str]) -> Transaction | None:
-    price = _parse_float(_pick(row, "price_aed"))
-    size = _parse_float(_pick(row, "size_sqm"))
+    price = csv_utils.parse_float(csv_utils.pick(row, COLUMN_CANDIDATES["price_aed"]))
+    size = csv_utils.parse_float(csv_utils.pick(row, COLUMN_CANDIDATES["size_sqm"]))
     if not price or not size:
         return None
 
     return Transaction(
-        area=(_pick(row, "area") or "unknown").strip(),
-        property_type=(_pick(row, "property_type") or "unknown").strip(),
-        bedrooms=_parse_rooms(_pick(row, "rooms")),
+        area=(csv_utils.pick(row, COLUMN_CANDIDATES["area"]) or "unknown").strip(),
+        property_type=(csv_utils.pick(row, COLUMN_CANDIDATES["property_type"]) or "unknown").strip(),
+        bedrooms=csv_utils.parse_rooms(csv_utils.pick(row, COLUMN_CANDIDATES["rooms"])),
         size_sqm=size,
         price_aed=price,
-        transaction_date=(_pick(row, "date") or "").strip(),
+        transaction_date=(csv_utils.pick(row, COLUMN_CANDIDATES["date"]) or "").strip(),
     )
 
 
@@ -79,7 +46,10 @@ def _load() -> list[Transaction]:
     transactions: list[Transaction] = []
     for path in sorted(glob.glob(os.path.join(DATA_DIR, "*.csv"))):
         with open(path, newline="", encoding="utf-8-sig") as handle:
-            for row in csv.DictReader(handle):
+            reader = csv.DictReader(handle)
+            if csv_utils.header_kind(reader.fieldnames) != "sales":
+                continue  # a rent (or unrecognized) file — not ours
+            for row in reader:
                 txn = _row_to_transaction(row)
                 if txn:
                     transactions.append(txn)

@@ -41,6 +41,19 @@ class TransactionsResponse(BaseModel):
     source: str
 
 
+class RentContract(BaseModel):
+    area: str
+    property_type: str
+    bedrooms: int | None = None
+    size_sqm: float
+    annual_rent_aed: float
+    registration_date: str
+
+    @property
+    def annual_rent_per_sqm(self) -> float:
+        return round(self.annual_rent_aed / self.size_sqm, 2)
+
+
 class ValuationRequest(BaseModel):
     area: str
     property_type: str
@@ -66,4 +79,23 @@ class ValuationResponse(BaseModel):
     disclaimer: str = (
         "Estimate derived from comparable DLD transactions in the same area/type. "
         "Not a substitute for a licensed RICS/RERA valuation."
+    )
+
+
+class RentalYieldResponse(BaseModel):
+    area: str
+    property_type: str
+    size_sqm: float
+    estimated_annual_rent_aed: float
+    estimated_sale_value_aed: float
+    gross_yield_pct: float
+    sale_comps_used: int
+    rent_comps_used: int
+    method: str
+    sale_source: str
+    rent_source: str
+    disclaimer: str = (
+        "Gross yield = median annual rent / median sale price for comparable "
+        "units. Ignores service charges, agency/DLD fees, and vacancy — net "
+        "yield is lower. Not investment advice."
     )

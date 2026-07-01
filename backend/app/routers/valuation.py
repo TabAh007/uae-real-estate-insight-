@@ -2,18 +2,15 @@ from statistics import median, quantiles
 
 from fastapi import APIRouter, HTTPException
 
-from app.schemas import ValuationRequest, ValuationResponse
-from app.services.transactions_source import get_transactions
+from app.schemas import RentalYieldResponse, ValuationRequest, ValuationResponse
+from app.services import comps
+from app.services.transactions_source import get_rent_contracts, get_transactions
 
 router = APIRouter(prefix="/valuation", tags=["valuation"])
 
-# A "comparable" should be a similar-sized unit — a studio and a penthouse in
-# the same area have wildly different price/sqm, so raw min/max across all of
-# them yields a uselessly wide band. Keep sales within ±SIZE_TOLERANCE of the
-# subject's floor area, and require at least MIN_COMPS before trusting the
-# filter; otherwise fall back to the full area/type set.
-SIZE_TOLERANCE = 0.35
-MIN_COMPS = 5
+
+def _median_psm(records: list, psm_attr: str) -> float:
+    return median(getattr(r, psm_attr) for r in records)
 
 
 @router.post("/estimate", response_model=ValuationResponse)
@@ -27,23 +24,13 @@ async def estimate(payload: ValuationRequest) -> ValuationResponse:
             detail=f"No comparable transactions found for {payload.property_type} in {payload.area}",
         )
 
-    lo, hi = payload.size_sqm * (1 - SIZE_TOLERANCE), payload.size_sqm * (1 + SIZE_TOLERANCE)
-    sized = [t for t in all_comps if lo <= t.size_sqm <= hi]
-
-    if payload.bedrooms is not None:
-        by_bed = [t for t in sized if t.bedrooms == payload.bedrooms]
-        if len(by_bed) >= MIN_COMPS:
-            sized = by_bed
-
-    if len(sized) >= MIN_COMPS:
-        used = sized
+    used, narrowed = comps.select_by_size(all_comps, payload.size_sqm, payload.bedrooms)
+    if narrowed:
         method = (
             f"Interquartile (25th–75th percentile) price/sqm of {len(used)} "
-            f"comparables within ±{int(SIZE_TOLERANCE * 100)}% of {payload.size_sqm:g} sqm"
+            f"comparables within ±{int(comps.SIZE_TOLERANCE * 100)}% of {payload.size_sqm:g} sqm"
         )
     else:
-        # Not enough size-matched sales — widen to all area/type comps and say so.
-        used = all_comps
         method = (
             f"Interquartile (25th–75th percentile) price/sqm of all {len(used)} "
             f"{payload.property_type} sales in {payload.area} (too few size-matched comps to narrow)"
@@ -83,3 +70,46 @@ async def estimate(payload: ValuationRequest) -> ValuationResponse:
             response.asking_price_verdict = "within comparable range"
 
     return response
+
+
+@router.post("/rental-yield", response_model=RentalYieldResponse)
+async def rental_yield(payload: ValuationRequest) -> RentalYieldResponse:
+    sales, sale_source = await get_transactions(area=payload.area, property_type=payload.property_type)
+    rents, rent_source = await get_rent_contracts(area=payload.area, property_type=payload.property_type)
+
+    if not sales:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No comparable sales for {payload.property_type} in {payload.area} — can't compute yield.",
+        )
+    if not rents:
+        raise HTTPException(status_code=404, detail=f"No rent data available: {rent_source}")
+
+    # Normalise both sides to price/sqm so the sale and rent comp sets don't
+    # have to be the exact same size to compare fairly.
+    sale_comps, _ = comps.select_by_size(sales, payload.size_sqm, payload.bedrooms)
+    rent_comps, _ = comps.select_by_size(rents, payload.size_sqm, payload.bedrooms)
+
+    sale_psm = _median_psm(sale_comps, "price_per_sqm")
+    rent_psm = _median_psm(rent_comps, "annual_rent_per_sqm")
+
+    estimated_sale = sale_psm * payload.size_sqm
+    estimated_rent = rent_psm * payload.size_sqm
+    gross_yield = rent_psm / sale_psm * 100 if sale_psm else 0.0
+
+    return RentalYieldResponse(
+        area=payload.area,
+        property_type=payload.property_type,
+        size_sqm=payload.size_sqm,
+        estimated_annual_rent_aed=round(estimated_rent, -2),
+        estimated_sale_value_aed=round(estimated_sale, -2),
+        gross_yield_pct=round(gross_yield, 2),
+        sale_comps_used=len(sale_comps),
+        rent_comps_used=len(rent_comps),
+        method=(
+            f"Median annual rent/sqm ({len(rent_comps)} contracts) ÷ median sale "
+            f"price/sqm ({len(sale_comps)} sales), size-matched to {payload.size_sqm:g} sqm"
+        ),
+        sale_source=sale_source,
+        rent_source=rent_source,
+    )

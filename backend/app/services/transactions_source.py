@@ -5,8 +5,8 @@ Priority: live Dubai Pulse API (if credentials set) -> local DLD CSV export
 this so the fallback logic lives in exactly one place.
 """
 from app.config import settings
-from app.schemas import Transaction
-from app.services import dld_csv, sample_data
+from app.schemas import RentContract, Transaction
+from app.services import dld_csv, dld_rent_csv, sample_data, sample_rents
 from app.services.dubai_pulse import dubai_pulse_client
 
 
@@ -30,6 +30,30 @@ async def get_transactions(
         and (bedrooms is None or t.bedrooms == bedrooms)
     ]
     return records, "sample_data (no Dubai Pulse creds and no CSV — see backend/data/README.md)"
+
+
+async def get_rent_contracts(
+    area: str | None = None,
+    property_type: str | None = None,
+    bedrooms: int | None = None,
+) -> tuple[list[RentContract], str]:
+    """Rent contracts for yield. Priority: real rent CSV -> sample rents (only
+    when sales are ALSO sample, so a real-sales + sample-rents mix that would
+    produce a bogus yield never happens) -> empty with guidance."""
+    if dld_rent_csv.has_data():
+        return dld_rent_csv.search(area, property_type, bedrooms), "dld_rent_csv (backend/data/)"
+
+    if not dld_csv.has_data():
+        records = [
+            c
+            for c in sample_rents.SAMPLE_RENTS
+            if (not area or c.area.lower() == area.lower())
+            and (not property_type or c.property_type.lower() == property_type.lower())
+            and (bedrooms is None or c.bedrooms == bedrooms)
+        ]
+        return records, "sample_rents (demo)"
+
+    return [], "no rent data — download the DLD rent-contracts CSV (see backend/data/README.md)"
 
 
 async def get_facets() -> dict[str, list[str]]:

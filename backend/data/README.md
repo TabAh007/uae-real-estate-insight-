@@ -14,6 +14,16 @@ folder is loaded automatically on backend startup (no API credentials needed).
 `/health` will then report `dld_csv_rows` > 0 and `/properties/transactions`
 + `/valuation/estimate` will serve the real data instead of the bundled sample.
 
+## Rental yield: also drop a Rent Contracts CSV
+
+To enable `/valuation/rental-yield`, download a second CSV from the same page:
+under **Rent Transaction Details**, pick a date range and click **Download as
+CSV**, then drop it in this folder too. Sales and rent files coexist here — the
+loaders tell them apart by their column headers (a rent file has an
+`ANNUAL_AMOUNT`/`CONTRACT_AMOUNT` column and no sale-price column), so no
+renaming is needed. Gross yield = median annual rent ÷ median sale price for
+size-matched comparable units.
+
 ## Expected columns
 
 The loader maps these DLD column headers (English portal). If a future export
