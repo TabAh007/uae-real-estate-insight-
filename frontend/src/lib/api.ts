@@ -77,6 +77,29 @@ export function getFacets(): Promise<Facets> {
   return apiFetch(`/properties/facets`);
 }
 
+export interface SchoolNearby {
+  name: string;
+  rating: string | null;
+  rating_year: string | null;
+  curriculum: string | null;
+  grades: string | null;
+  lat: number;
+  lon: number;
+  distance_m: number;
+}
+
+export interface SchoolsResponse {
+  lat: number;
+  lon: number;
+  radius_m: number;
+  schools: SchoolNearby[];
+  source: string;
+}
+
+export function getSchools(lat: number, lon: number, radiusM = 3000): Promise<SchoolsResponse> {
+  return apiFetch(`/neighborhood/schools?lat=${lat}&lon=${lon}&radius_m=${radiusM}`);
+}
+
 export interface ValuationRequest {
   area: string;
   property_type: string;

@@ -24,6 +24,15 @@ loaders tell them apart by their column headers (a rent file has an
 renaming is needed. Gross yield = median annual rent ÷ median sale price for
 size-matched comparable units.
 
+## KHDA school ratings (optional)
+
+To show rated schools near a property, download **Dubai's Private Schools Open
+Data** (an `.xlsx`) from
+https://web.khda.gov.ae/en/Resources/KHDA-data-statistics and drop it in this
+folder. It carries each school's coordinates, curriculum, and DSIB inspection
+rating per year; the app surfaces each school's most recent rating via
+`/neighborhood/schools`. `/health` will report `khda_schools` > 0.
+
 ## Expected columns
 
 The loader maps these DLD column headers (English portal). If a future export

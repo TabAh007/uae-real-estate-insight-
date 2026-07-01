@@ -1,3 +1,4 @@
-# Don't commit bulk DLD data exports — keep the folder + its docs only.
+# Don't commit bulk data exports (DLD CSVs, KHDA XLSX) — keep docs only.
 *.csv
+*.xlsx
 !README.md

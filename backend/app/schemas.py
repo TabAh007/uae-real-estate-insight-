@@ -23,6 +23,25 @@ class NeighborhoodResponse(BaseModel):
     source: str = "openstreetmap"
 
 
+class SchoolNearby(BaseModel):
+    name: str
+    rating: str | None = None
+    rating_year: str | None = None
+    curriculum: str | None = None
+    grades: str | None = None
+    lat: float
+    lon: float
+    distance_m: float
+
+
+class SchoolsResponse(BaseModel):
+    lat: float
+    lon: float
+    radius_m: int
+    schools: list[SchoolNearby]
+    source: str
+
+
 class Transaction(BaseModel):
     area: str
     property_type: str

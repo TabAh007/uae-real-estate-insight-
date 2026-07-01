@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import maplibregl, { Map as MapLibreMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { Poi } from "@/lib/api";
+import type { Poi, SchoolNearby } from "@/lib/api";
 
 const OSM_STYLE: maplibregl.StyleSpecification = {
   version: 8,
@@ -30,12 +30,23 @@ const CATEGORY_COLORS: Record<string, string> = {
   place_of_worship: "#78716c",
 };
 
+// KHDA DSIB rating -> marker colour (green good ... red weak).
+const RATING_COLORS: Record<string, string> = {
+  Outstanding: "#15803d",
+  "Very Good": "#4d7c0f",
+  Good: "#ca8a04",
+  Acceptable: "#ea580c",
+  Weak: "#b91c1c",
+  Unsatisfactory: "#7f1d1d",
+};
+
 interface PropertyMapProps {
   center: { lat: number; lon: number } | null;
   pois: Poi[];
+  schools?: SchoolNearby[];
 }
 
-export default function PropertyMap({ center, pois }: PropertyMapProps) {
+export default function PropertyMap({ center, pois, schools = [] }: PropertyMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<Marker[]>([]);
@@ -70,7 +81,18 @@ export default function PropertyMap({ center, pois }: PropertyMapProps) {
         .addTo(map);
       markersRef.current.push(marker);
     });
-  }, [center, pois]);
+
+    schools.forEach((school) => {
+      const label = `${school.name} — ${school.rating ?? "unrated"}${
+        school.curriculum ? ` (${school.curriculum})` : ""
+      }, ${Math.round(school.distance_m)}m`;
+      const marker = new maplibregl.Marker({ color: (school.rating && RATING_COLORS[school.rating]) || "#6b7280" })
+        .setLngLat([school.lon, school.lat])
+        .setPopup(new maplibregl.Popup().setText(label))
+        .addTo(map);
+      markersRef.current.push(marker);
+    });
+  }, [center, pois, schools]);
 
   return <div ref={containerRef} className="h-full w-full rounded-lg" />;
 }

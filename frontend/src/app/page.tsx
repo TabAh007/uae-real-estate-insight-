@@ -8,8 +8,10 @@ import {
   geocodeAddress,
   getFacets,
   getNeighborhood,
+  getSchools,
   type NeighborhoodResponse,
   type RentalYieldResponse,
+  type SchoolNearby,
   type ValuationResponse,
 } from "@/lib/api";
 
@@ -20,10 +22,20 @@ const PropertyMap = dynamic(() => import("@/components/PropertyMap"), { ssr: fal
 const FALLBACK_AREAS = ["Dubai Marina", "Jumeirah Village Circle", "Downtown Dubai", "Business Bay", "Arabian Ranches"];
 const FALLBACK_PROPERTY_TYPES = ["Apartment", "Villa"];
 
+const RATING_COLOR: Record<string, string> = {
+  Outstanding: "#15803d",
+  "Very Good": "#4d7c0f",
+  Good: "#ca8a04",
+  Acceptable: "#ea580c",
+  Weak: "#b91c1c",
+  Unsatisfactory: "#7f1d1d",
+};
+
 export default function Home() {
   const [address, setAddress] = useState("Dubai Marina, Dubai");
   const [center, setCenter] = useState<{ lat: number; lon: number } | null>(null);
   const [neighborhood, setNeighborhood] = useState<NeighborhoodResponse | null>(null);
+  const [schools, setSchools] = useState<SchoolNearby[]>([]);
 
   // Dropdown options come from whatever data the backend actually has loaded
   // (sample data, a DLD CSV, or the live API), so e.g. real "Flat"/uppercase
@@ -66,8 +78,12 @@ export default function Home() {
     try {
       const geo = await geocodeAddress(address);
       setCenter({ lat: geo.lat, lon: geo.lon });
-      const nearby = await getNeighborhood(geo.lat, geo.lon);
+      const [nearby, schoolsResp] = await Promise.all([
+        getNeighborhood(geo.lat, geo.lon),
+        getSchools(geo.lat, geo.lon).catch(() => null),
+      ]);
       setNeighborhood(nearby);
+      setSchools(schoolsResp?.schools ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to locate address");
     } finally {
@@ -142,6 +158,30 @@ export default function Home() {
                 <li key={i} className="flex justify-between border-b border-gray-100 py-1">
                   <span>{poi.name} <span className="text-gray-400">({poi.category})</span></span>
                   <span>{Math.round(poi.distance_m)}m</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {schools.length > 0 && (
+          <section className="flex flex-col gap-1">
+            <h2 className="text-sm font-medium text-gray-700">KHDA-rated schools nearby</h2>
+            <ul className="max-h-40 overflow-y-auto text-xs text-gray-600">
+              {schools.slice(0, 12).map((s, i) => (
+                <li key={i} className="flex justify-between gap-2 border-b border-gray-100 py-1">
+                  <span className="truncate">
+                    {s.name}{" "}
+                    {s.rating && (
+                      <span
+                        className="rounded px-1 text-white"
+                        style={{ backgroundColor: RATING_COLOR[s.rating] ?? "#6b7280" }}
+                      >
+                        {s.rating}
+                      </span>
+                    )}
+                  </span>
+                  <span className="shrink-0">{Math.round(s.distance_m)}m</span>
                 </li>
               ))}
             </ul>
@@ -232,7 +272,7 @@ export default function Home() {
       </aside>
 
       <main className="flex-1">
-        <PropertyMap center={center} pois={neighborhood?.pois ?? []} />
+        <PropertyMap center={center} pois={neighborhood?.pois ?? []} schools={schools} />
       </main>
     </div>
   );

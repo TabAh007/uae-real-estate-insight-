@@ -17,6 +17,7 @@ DLD transactions, plus what's nearby. Phase 1 scaffold.
 | DLD open-data **CSV** (recommended, zero credentials) | Ready to use | Download a transactions CSV from https://dubailand.gov.ae/en/open-data/real-estate-data/ (Download as CSV — just a reCAPTCHA, no signup) and drop it in `backend/data/`. Loaded on startup. See `backend/data/README.md`. |
 | Dubai Pulse / DLD **API** | Optional | The programmatic route. Register at dubaipulse.gov.ae for OAuth credentials and fill `backend/.env`. Note: the portal may Cloudflare-block normal browsers by region; the CSV path above avoids this entirely. |
 | OpenStreetMap Overpass | Live, no key needed | Powers "what's nearby." Coverage is strong for metro/malls/landmarks, weaker for residential-area amenities — see `backend/app/services/overpass.py` for the fallback-mirror handling. |
+| KHDA schools XLSX | Optional | Drop `DubaiPrivateSchoolsOpenData.xlsx` in `backend/data/` for rated schools near a property (`/neighborhood/schools`). See `backend/data/README.md`. |
 | Geoapify | **Not yet configured** | Free tier, sign up at geoapify.com. Needed for address → lat/lon geocoding. |
 
 **Data source priority:** the backend serves the first available of — Dubai
@@ -64,9 +65,9 @@ Open http://localhost:3000.
 **Phase 1 (this scaffold):** comparable-sales valuation range on sample
 data, live OSM neighborhood search, map view.
 
-**Phase 2:** swap sample data for real Dubai Pulse transactions once API
-access is approved; add KHDA school ratings; add Geoapify Places as a
-fallback when OSM POI results are sparse.
+**Phase 2 (done):** real DLD sales + rent CSVs, rental-yield, and KHDA school
+ratings are all wired in. Remaining: Geoapify Places as a fallback when OSM
+POI results are sparse.
 
 **Phase 3 (not started):** live listings aggregation via a licensed data
 provider or direct agency partnerships; conversational/chat layer on top of
