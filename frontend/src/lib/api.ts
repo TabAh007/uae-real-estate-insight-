@@ -164,3 +164,27 @@ export function estimateInvestmentScore(payload: ValuationRequest): Promise<Inve
     body: JSON.stringify(payload),
   });
 }
+
+export interface PriceTrendPoint {
+  period: string;
+  median_price_per_sqm: number;
+  count: number;
+}
+
+export interface PriceTrendResponse {
+  area: string;
+  property_type: string;
+  granularity: string;
+  points: PriceTrendPoint[];
+  source: string;
+  note: string | null;
+}
+
+export function getPriceTrend(
+  area: string,
+  propertyType: string,
+  granularity: "day" | "week" | "month" = "month",
+): Promise<PriceTrendResponse> {
+  const q = new URLSearchParams({ area, property_type: propertyType, granularity });
+  return apiFetch(`/analytics/price-trend?${q.toString()}`);
+}

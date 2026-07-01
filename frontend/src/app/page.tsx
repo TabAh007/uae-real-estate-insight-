@@ -9,16 +9,21 @@ import {
   geocodeAddress,
   getFacets,
   getNeighborhood,
+  getPriceTrend,
   getSchools,
   type InvestmentScoreResponse,
   type NeighborhoodResponse,
+  type PriceTrendResponse,
   type RentalYieldResponse,
   type SchoolNearby,
   type ValuationResponse,
 } from "@/lib/api";
+import TrendChart from "@/components/TrendChart";
 
 // MapLibre touches window/document at import time — must load client-only.
 const PropertyMap = dynamic(() => import("@/components/PropertyMap"), { ssr: false });
+
+type Granularity = "day" | "week" | "month";
 
 // Fallback options shown before facets load (or if the backend is unreachable).
 const FALLBACK_AREAS = ["Dubai Marina", "Jumeirah Village Circle", "Downtown Dubai", "Business Bay", "Arabian Ranches"];
@@ -52,11 +57,14 @@ export default function Home() {
   const [valuation, setValuation] = useState<ValuationResponse | null>(null);
   const [yieldResult, setYieldResult] = useState<RentalYieldResponse | null>(null);
   const [scoreResult, setScoreResult] = useState<InvestmentScoreResponse | null>(null);
+  const [trend, setTrend] = useState<PriceTrendResponse | null>(null);
+  const [granularity, setGranularity] = useState<Granularity>("day");
 
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [loadingValuation, setLoadingValuation] = useState(false);
   const [loadingYield, setLoadingYield] = useState(false);
   const [loadingScore, setLoadingScore] = useState(false);
+  const [loadingTrend, setLoadingTrend] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -124,6 +132,20 @@ export default function Home() {
       setYieldResult(null);
     } finally {
       setLoadingYield(false);
+    }
+  }
+
+  async function handleTrend(g: Granularity = granularity) {
+    setError(null);
+    setLoadingTrend(true);
+    try {
+      const result = await getPriceTrend(area, propertyType, g);
+      setTrend(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load price trend");
+      setTrend(null);
+    } finally {
+      setLoadingTrend(false);
     }
   }
 
@@ -258,13 +280,22 @@ export default function Home() {
               {loadingYield ? "Calculating…" : "Rental yield"}
             </button>
           </div>
-          <button
-            onClick={handleScore}
-            disabled={loadingScore}
-            className="rounded bg-indigo-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {loadingScore ? "Scoring…" : "★ Investment score"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleScore}
+              disabled={loadingScore}
+              className="flex-1 rounded bg-indigo-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+            >
+              {loadingScore ? "Scoring…" : "★ Investment score"}
+            </button>
+            <button
+              onClick={() => handleTrend()}
+              disabled={loadingTrend}
+              className="flex-1 rounded bg-slate-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+            >
+              {loadingTrend ? "Loading…" : "Price trend"}
+            </button>
+          </div>
         </section>
 
         {scoreResult && (
@@ -291,6 +322,35 @@ export default function Home() {
             ))}
             <p className="text-xs text-gray-500">Est. value AED {scoreResult.estimated_value_aed.toLocaleString()}</p>
             <p className="text-[11px] text-gray-400">{scoreResult.disclaimer}</p>
+          </section>
+        )}
+
+        {trend && (
+          <section className="flex flex-col gap-2 rounded border border-slate-200 p-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-medium text-gray-700">Median price/sqm over time</h2>
+              <div className="flex gap-1">
+                {(["day", "week", "month"] as Granularity[]).map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => {
+                      setGranularity(g);
+                      handleTrend(g);
+                    }}
+                    className={`rounded px-2 py-0.5 text-[11px] ${
+                      granularity === g ? "bg-slate-700 text-white" : "bg-slate-100 text-gray-600"
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <TrendChart points={trend.points} />
+            {trend.note && <p className="text-[11px] text-amber-700">{trend.note}</p>}
+            <p className="text-[11px] text-gray-400">
+              {trend.points.length} {granularity} point(s) · {trend.area} · source: {trend.source}
+            </p>
           </section>
         )}
 

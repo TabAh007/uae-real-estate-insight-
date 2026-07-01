@@ -74,6 +74,21 @@ class RentContract(BaseModel):
         return round(self.annual_rent_aed / self.size_sqm, 2)
 
 
+class PriceTrendPoint(BaseModel):
+    period: str  # YYYY-MM-DD (day/week start) or YYYY-MM (month)
+    median_price_per_sqm: float
+    count: int
+
+
+class PriceTrendResponse(BaseModel):
+    area: str
+    property_type: str
+    granularity: str
+    points: list[PriceTrendPoint]
+    source: str
+    note: str | None = None
+
+
 class ValuationRequest(BaseModel):
     area: str
     property_type: str
