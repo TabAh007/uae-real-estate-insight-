@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import {
+  estimateInvestmentScore,
   estimateRentalYield,
   estimateValuation,
   geocodeAddress,
   getFacets,
   getNeighborhood,
   getSchools,
+  type InvestmentScoreResponse,
   type NeighborhoodResponse,
   type RentalYieldResponse,
   type SchoolNearby,
@@ -49,10 +51,12 @@ export default function Home() {
   const [askingPrice, setAskingPrice] = useState<number | "">("");
   const [valuation, setValuation] = useState<ValuationResponse | null>(null);
   const [yieldResult, setYieldResult] = useState<RentalYieldResponse | null>(null);
+  const [scoreResult, setScoreResult] = useState<InvestmentScoreResponse | null>(null);
 
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [loadingValuation, setLoadingValuation] = useState(false);
   const [loadingYield, setLoadingYield] = useState(false);
+  const [loadingScore, setLoadingScore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -120,6 +124,25 @@ export default function Home() {
       setYieldResult(null);
     } finally {
       setLoadingYield(false);
+    }
+  }
+
+  async function handleScore() {
+    setError(null);
+    setLoadingScore(true);
+    try {
+      const result = await estimateInvestmentScore({
+        area,
+        property_type: propertyType,
+        size_sqm: sizeSqm,
+        asking_price_aed: askingPrice === "" ? undefined : askingPrice,
+      });
+      setScoreResult(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to compute investment score");
+      setScoreResult(null);
+    } finally {
+      setLoadingScore(false);
     }
   }
 
@@ -235,7 +258,41 @@ export default function Home() {
               {loadingYield ? "Calculating…" : "Rental yield"}
             </button>
           </div>
+          <button
+            onClick={handleScore}
+            disabled={loadingScore}
+            className="rounded bg-indigo-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {loadingScore ? "Scoring…" : "★ Investment score"}
+          </button>
         </section>
+
+        {scoreResult && (
+          <section className="flex flex-col gap-2 rounded border border-indigo-200 bg-indigo-50 p-3">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-indigo-700">{scoreResult.overall_score}</span>
+              <span className="text-xs text-gray-500">/100</span>
+              <span className="ml-auto text-sm font-semibold text-indigo-800">{scoreResult.rating}</span>
+            </div>
+            {scoreResult.components.map((c) => (
+              <div key={c.name} className="flex flex-col gap-0.5">
+                <div className="flex justify-between text-xs text-gray-600">
+                  <span>{c.name}</span>
+                  <span>{c.score}/{c.max_score}</span>
+                </div>
+                <div className="h-1.5 w-full rounded bg-gray-200">
+                  <div
+                    className="h-1.5 rounded bg-indigo-500"
+                    style={{ width: `${(c.score / c.max_score) * 100}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-gray-400">{c.detail}</p>
+              </div>
+            ))}
+            <p className="text-xs text-gray-500">Est. value AED {scoreResult.estimated_value_aed.toLocaleString()}</p>
+            <p className="text-[11px] text-gray-400">{scoreResult.disclaimer}</p>
+          </section>
+        )}
 
         {valuation && (
           <section className="flex flex-col gap-2 rounded border border-gray-200 p-3">

@@ -136,3 +136,31 @@ export function estimateRentalYield(payload: ValuationRequest): Promise<RentalYi
     body: JSON.stringify(payload),
   });
 }
+
+export interface ScoreComponent {
+  name: string;
+  score: number;
+  max_score: number;
+  detail: string;
+}
+
+export interface InvestmentScoreResponse {
+  area: string;
+  property_type: string;
+  size_sqm: number;
+  overall_score: number;
+  rating: string;
+  components: ScoreComponent[];
+  estimated_value_aed: number;
+  gross_yield_pct: number | null;
+  sale_source: string;
+  rent_source: string;
+  disclaimer: string;
+}
+
+export function estimateInvestmentScore(payload: ValuationRequest): Promise<InvestmentScoreResponse> {
+  return apiFetch(`/valuation/investment-score`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

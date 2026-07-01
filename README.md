@@ -69,6 +69,11 @@ data, live OSM neighborhood search, map view.
 ratings, and a Geoapify Places fallback (fills any amenity category OSM
 returns nothing for; serves everything from Geoapify if Overpass is down).
 
+**Phase 3 (in progress):** an investment score that blends value-vs-comparables,
+gross rental yield, and market liquidity into one 0–100 rating with a
+transparent per-component breakdown. Still open: a price-trend chart (needs a
+wider DLD date range than the current 2-month export) and deployment.
+
 **Phase 3 (not started):** live listings aggregation via a licensed data
 provider or direct agency partnerships; conversational/chat layer on top of
 the valuation and neighborhood data.

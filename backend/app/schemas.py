@@ -102,6 +102,31 @@ class ValuationResponse(BaseModel):
     )
 
 
+class ScoreComponent(BaseModel):
+    name: str
+    score: float
+    max_score: float
+    detail: str
+
+
+class InvestmentScoreResponse(BaseModel):
+    area: str
+    property_type: str
+    size_sqm: float
+    overall_score: int  # 0-100, normalized over the components we could assess
+    rating: str  # Attractive / Fair / Weak / Insufficient data
+    components: list[ScoreComponent]
+    estimated_value_aed: float
+    gross_yield_pct: float | None = None
+    sale_source: str
+    rent_source: str
+    disclaimer: str = (
+        "Heuristic score from open DLD data (value vs. comparable sales, gross "
+        "rental yield, and market liquidity), with the weighting shown per "
+        "component. A screening aid, not investment advice."
+    )
+
+
 class RentalYieldResponse(BaseModel):
     area: str
     property_type: str
