@@ -13,6 +13,7 @@ class Poi(BaseModel):
     lat: float
     lon: float
     distance_m: float
+    source: str = "openstreetmap"
 
 
 class NeighborhoodResponse(BaseModel):

@@ -65,9 +65,9 @@ Open http://localhost:3000.
 **Phase 1 (this scaffold):** comparable-sales valuation range on sample
 data, live OSM neighborhood search, map view.
 
-**Phase 2 (done):** real DLD sales + rent CSVs, rental-yield, and KHDA school
-ratings are all wired in. Remaining: Geoapify Places as a fallback when OSM
-POI results are sparse.
+**Phase 2 (done):** real DLD sales + rent CSVs, rental-yield, KHDA school
+ratings, and a Geoapify Places fallback (fills any amenity category OSM
+returns nothing for; serves everything from Geoapify if Overpass is down).
 
 **Phase 3 (not started):** live listings aggregation via a licensed data
 provider or direct agency partnerships; conversational/chat layer on top of

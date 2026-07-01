@@ -153,6 +153,9 @@ export default function Home() {
             <h2 className="text-sm font-medium text-gray-700">
               Nearby ({neighborhood.pois.length} within {neighborhood.radius_m}m)
             </h2>
+            {neighborhood.source !== "openstreetmap" && (
+              <p className="text-[11px] text-gray-400">source: {neighborhood.source}</p>
+            )}
             <ul className="max-h-40 overflow-y-auto text-xs text-gray-600">
               {neighborhood.pois.slice(0, 15).map((poi, i) => (
                 <li key={i} className="flex justify-between border-b border-gray-100 py-1">
