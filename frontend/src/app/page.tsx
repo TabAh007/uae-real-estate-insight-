@@ -59,6 +59,21 @@ function bedLabel(t: Transaction): string {
   return `${t.bedrooms} B/R`;
 }
 
+// A DLD record is a past sale with no listing of its own, so we link to each
+// portal's search for similar CURRENT listings (opened in the user's browser —
+// no scraping on our side). Site-scoped search reliably lands on real results.
+function listingSearchLinks(t: Transaction): { name: string; url: string }[] {
+  const beds = t.bedrooms === 0 ? "studio" : t.bedrooms != null ? `${t.bedrooms} bedroom` : "";
+  const terms = `${t.area} ${beds} ${t.property_type} for sale dubai`.replace(/\s+/g, " ").trim();
+  const search = (site: string) =>
+    `https://www.google.com/search?q=${encodeURIComponent(`${terms} site:${site}`)}`;
+  return [
+    { name: "Bayut", url: search("bayut.com") },
+    { name: "Property Finder", url: search("propertyfinder.ae") },
+    { name: "Dubizzle", url: search("dubizzle.com") },
+  ];
+}
+
 // Deterministic spiral offset so an area's properties spread out and stay put.
 function jitter(lat: number, lon: number, i: number): { lat: number; lon: number } {
   const golden = 2.399963;
@@ -257,6 +272,25 @@ export default function Home() {
                 {analysis.property.transaction_date && (
                   <p className="text-[11px] text-gray-400">Sold {analysis.property.transaction_date.slice(0, 10)}</p>
                 )}
+                <div className="flex flex-col gap-1 border-t border-gray-100 pt-2">
+                  <span className="text-[11px] text-gray-500">See similar current listings:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {listingSearchLinks(analysis.property).map((l) => (
+                      <a
+                        key={l.name}
+                        href={l.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50"
+                      >
+                        {l.name} ↗
+                      </a>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-gray-400">
+                    This is a past DLD sale — links search each portal for comparable listings on sale now.
+                  </span>
+                </div>
                 <p className="text-[11px] text-gray-400">{analysis.valuation.disclaimer}</p>
               </div>
 
