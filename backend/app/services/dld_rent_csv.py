@@ -14,8 +14,11 @@ from app.services.dld_csv import DATA_DIR
 
 COLUMN_CANDIDATES = {
     "area": ["AREA_EN", "Area", "area_name_en"],
+    # Note: the rent export uses PROP_SUB_TYPE_EN, but the sales export uses the
+    # abbreviated PROP_SB_TYPE_EN — both are listed so sub-types (e.g. "Flat")
+    # match across the two datasets.
     "property_type": [
-        "EJARI_PROP_SUB_TYPE_EN", "PROP_SB_TYPE_EN", "Property Sub Type",
+        "PROP_SUB_TYPE_EN", "EJARI_PROP_SUB_TYPE_EN", "PROP_SB_TYPE_EN", "Property Sub Type",
         "EJARI_PROP_TYPE_EN", "PROP_TYPE_EN", "Property Type", "property_type_en",
     ],
     # Prefer the annualised figure; CONTRACT_AMOUNT can cover a multi-year term.
