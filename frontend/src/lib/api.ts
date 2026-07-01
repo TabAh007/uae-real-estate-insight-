@@ -43,6 +43,7 @@ export interface ValuationResponse {
   comparables: Transaction[];
   asking_price_aed: number | null;
   asking_price_verdict: string | null;
+  method: string;
   source: string;
   disclaimer: string;
 }

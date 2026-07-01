@@ -61,6 +61,7 @@ class ValuationResponse(BaseModel):
     comparables: list[Transaction]
     asking_price_aed: float | None = None
     asking_price_verdict: str | None = None
+    method: str
     source: str
     disclaimer: str = (
         "Estimate derived from comparable DLD transactions in the same area/type. "

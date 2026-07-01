@@ -16,16 +16,27 @@ from app.schemas import Transaction
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
 
-# DLD portal (English) header -> our field. Kept explicit so a renamed export
-# column is a one-line fix rather than a silent data-loss bug.
-COLUMN_MAP = {
-    "area": "Area",
-    "property_type": "Property Sub Type",  # e.g. Flat/Villa — finer than "Property Type" (Land/Building/Unit)
-    "price_aed": "Amount",
-    "size_sqm": "Property Size (sq.m)",
-    "rooms": "Room(s)",
-    "date": "Transaction Date",
+# DLD exports come in two header styles: the machine names in the "Download as
+# CSV" file (AREA_EN, TRANS_VALUE, ...) and the human-readable names shown in
+# the web table (Area, Amount, ...). Each field lists the candidate headers in
+# priority order; the loader uses the first one present in the file, so either
+# export — and roughly the Dubai Pulse API shape — works unchanged.
+COLUMN_CANDIDATES = {
+    "area": ["AREA_EN", "Area", "area_name_en"],
+    # Sub type (Flat/Villa) is finer than PROP_TYPE_EN (Unit/Building/Land).
+    "property_type": ["PROP_SB_TYPE_EN", "Property Sub Type", "PROP_TYPE_EN", "Property Type", "property_type_en"],
+    "price_aed": ["TRANS_VALUE", "Amount", "ACTUAL_WORTH", "actual_worth"],
+    "size_sqm": ["ACTUAL_AREA", "PROCEDURE_AREA", "Property Size (sq.m)", "procedure_area"],
+    "rooms": ["ROOMS_EN", "Room(s)", "rooms_en"],
+    "date": ["INSTANCE_DATE", "Transaction Date", "instance_date"],
 }
+
+
+def _pick(row: dict[str, str], field: str) -> str | None:
+    for header in COLUMN_CANDIDATES[field]:
+        if header in row and row[header] not in (None, ""):
+            return row[header]
+    return None
 
 
 def _parse_rooms(value: str | None) -> int | None:
@@ -49,18 +60,18 @@ def _parse_float(value: str | None) -> float | None:
 
 
 def _row_to_transaction(row: dict[str, str]) -> Transaction | None:
-    price = _parse_float(row.get(COLUMN_MAP["price_aed"]))
-    size = _parse_float(row.get(COLUMN_MAP["size_sqm"]))
+    price = _parse_float(_pick(row, "price_aed"))
+    size = _parse_float(_pick(row, "size_sqm"))
     if not price or not size:
         return None
 
     return Transaction(
-        area=(row.get(COLUMN_MAP["area"]) or "unknown").strip(),
-        property_type=(row.get(COLUMN_MAP["property_type"]) or "unknown").strip(),
-        bedrooms=_parse_rooms(row.get(COLUMN_MAP["rooms"])),
+        area=(_pick(row, "area") or "unknown").strip(),
+        property_type=(_pick(row, "property_type") or "unknown").strip(),
+        bedrooms=_parse_rooms(_pick(row, "rooms")),
         size_sqm=size,
         price_aed=price,
-        transaction_date=(row.get(COLUMN_MAP["date"]) or "").strip(),
+        transaction_date=(_pick(row, "date") or "").strip(),
     )
 
 
