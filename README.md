@@ -14,9 +14,16 @@ DLD transactions, plus what's nearby. Phase 1 scaffold.
 
 | Source | Status | Notes |
 |---|---|---|
-| Dubai Pulse / DLD transactions | **Not yet configured** | App runs on bundled sample data (`backend/app/services/sample_data.py`) until you register for Dubai Pulse API access at dubaipulse.gov.ae and fill in `backend/.env`. |
+| DLD open-data **CSV** (recommended, zero credentials) | Ready to use | Download a transactions CSV from https://dubailand.gov.ae/en/open-data/real-estate-data/ (Download as CSV — just a reCAPTCHA, no signup) and drop it in `backend/data/`. Loaded on startup. See `backend/data/README.md`. |
+| Dubai Pulse / DLD **API** | Optional | The programmatic route. Register at dubaipulse.gov.ae for OAuth credentials and fill `backend/.env`. Note: the portal may Cloudflare-block normal browsers by region; the CSV path above avoids this entirely. |
 | OpenStreetMap Overpass | Live, no key needed | Powers "what's nearby." Coverage is strong for metro/malls/landmarks, weaker for residential-area amenities — see `backend/app/services/overpass.py` for the fallback-mirror handling. |
 | Geoapify | **Not yet configured** | Free tier, sign up at geoapify.com. Needed for address → lat/lon geocoding. |
+
+**Data source priority:** the backend serves the first available of — Dubai
+Pulse API (if credentials set) → a DLD CSV in `backend/data/` → bundled sample
+data. `/health` reports which is active (`dld_csv_rows`, `dubai_pulse_configured`).
+The frontend dropdowns auto-populate from `/properties/facets`, so real
+values (e.g. `Flat` vs the sample data's `Apartment`) appear automatically.
 
 Do **not** wire this project up to scrape Bayut, Property Finder, or Dubizzle —
 their Terms of Service explicitly prohibit automated collection, and UAE

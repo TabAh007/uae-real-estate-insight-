@@ -67,6 +67,15 @@ export function getNeighborhood(lat: number, lon: number, radiusM = 1200): Promi
   return apiFetch(`/neighborhood/nearby?lat=${lat}&lon=${lon}&radius_m=${radiusM}`);
 }
 
+export interface Facets {
+  areas: string[];
+  property_types: string[];
+}
+
+export function getFacets(): Promise<Facets> {
+  return apiFetch(`/properties/facets`);
+}
+
 export interface ValuationRequest {
   area: string;
   property_type: string;

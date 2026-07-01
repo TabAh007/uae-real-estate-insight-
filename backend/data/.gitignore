@@ -1,0 +1,3 @@
+# Don't commit bulk DLD data exports — keep the folder + its docs only.
+*.csv
+!README.md

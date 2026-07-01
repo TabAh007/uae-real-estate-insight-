@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import geocode, neighborhood, properties, valuation
+from app.services import dld_csv
 
 app = FastAPI(
     title="UAE Real Estate Insight API",
@@ -29,4 +30,5 @@ async def health() -> dict:
         "status": "ok",
         "dubai_pulse_configured": settings.dubai_pulse_configured,
         "geoapify_configured": settings.geoapify_configured,
+        "dld_csv_rows": len(dld_csv.TRANSACTIONS),
     }

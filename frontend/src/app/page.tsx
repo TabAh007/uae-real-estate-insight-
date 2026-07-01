@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   estimateValuation,
   geocodeAddress,
+  getFacets,
   getNeighborhood,
   type NeighborhoodResponse,
   type ValuationResponse,
@@ -13,16 +14,23 @@ import {
 // MapLibre touches window/document at import time — must load client-only.
 const PropertyMap = dynamic(() => import("@/components/PropertyMap"), { ssr: false });
 
-const AREAS = ["Dubai Marina", "Jumeirah Village Circle", "Downtown Dubai", "Business Bay", "Arabian Ranches"];
-const PROPERTY_TYPES = ["Apartment", "Villa"];
+// Fallback options shown before facets load (or if the backend is unreachable).
+const FALLBACK_AREAS = ["Dubai Marina", "Jumeirah Village Circle", "Downtown Dubai", "Business Bay", "Arabian Ranches"];
+const FALLBACK_PROPERTY_TYPES = ["Apartment", "Villa"];
 
 export default function Home() {
   const [address, setAddress] = useState("Dubai Marina, Dubai");
   const [center, setCenter] = useState<{ lat: number; lon: number } | null>(null);
   const [neighborhood, setNeighborhood] = useState<NeighborhoodResponse | null>(null);
 
-  const [area, setArea] = useState(AREAS[0]);
-  const [propertyType, setPropertyType] = useState(PROPERTY_TYPES[0]);
+  // Dropdown options come from whatever data the backend actually has loaded
+  // (sample data, a DLD CSV, or the live API), so e.g. real "Flat"/uppercase
+  // area names replace the hardcoded guesses automatically.
+  const [areas, setAreas] = useState<string[]>(FALLBACK_AREAS);
+  const [propertyTypes, setPropertyTypes] = useState<string[]>(FALLBACK_PROPERTY_TYPES);
+
+  const [area, setArea] = useState(FALLBACK_AREAS[0]);
+  const [propertyType, setPropertyType] = useState(FALLBACK_PROPERTY_TYPES[0]);
   const [sizeSqm, setSizeSqm] = useState(90);
   const [askingPrice, setAskingPrice] = useState<number | "">("");
   const [valuation, setValuation] = useState<ValuationResponse | null>(null);
@@ -30,6 +38,23 @@ export default function Home() {
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [loadingValuation, setLoadingValuation] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getFacets()
+      .then((facets) => {
+        if (facets.areas.length) {
+          setAreas(facets.areas);
+          setArea(facets.areas[0]);
+        }
+        if (facets.property_types.length) {
+          setPropertyTypes(facets.property_types);
+          setPropertyType(facets.property_types[0]);
+        }
+      })
+      .catch(() => {
+        /* keep fallbacks if the backend isn't up yet */
+      });
+  }, []);
 
   async function handleLocate() {
     setError(null);
@@ -110,12 +135,12 @@ export default function Home() {
           <h2 className="text-sm font-medium text-gray-700">2. Is it priced right?</h2>
           <div className="grid grid-cols-2 gap-2">
             <select className="rounded border border-gray-300 px-2 py-2 text-sm" value={area} onChange={(e) => setArea(e.target.value)}>
-              {AREAS.map((a) => (
+              {areas.map((a) => (
                 <option key={a} value={a}>{a}</option>
               ))}
             </select>
             <select className="rounded border border-gray-300 px-2 py-2 text-sm" value={propertyType} onChange={(e) => setPropertyType(e.target.value)}>
-              {PROPERTY_TYPES.map((t) => (
+              {propertyTypes.map((t) => (
                 <option key={t} value={t}>{t}</option>
               ))}
             </select>

@@ -2,30 +2,17 @@ from statistics import median
 
 from fastapi import APIRouter, HTTPException
 
-from app.config import settings
-from app.schemas import Transaction, ValuationRequest, ValuationResponse
-from app.services import sample_data
-from app.services.dubai_pulse import dubai_pulse_client
+from app.schemas import ValuationRequest, ValuationResponse
+from app.services.transactions_source import get_transactions
 
 router = APIRouter(prefix="/valuation", tags=["valuation"])
 
 
-async def _comparables(area: str, property_type: str) -> tuple[list[Transaction], str]:
-    if settings.dubai_pulse_configured:
-        records = await dubai_pulse_client.search_transactions(area=area, property_type=property_type)
-        return records, "dubai_pulse"
-
-    records = [
-        t
-        for t in sample_data.SAMPLE_TRANSACTIONS
-        if t.area.lower() == area.lower() and t.property_type.lower() == property_type.lower()
-    ]
-    return records, "sample_data (DUBAI_PULSE_* not configured — see backend/.env.example)"
-
-
 @router.post("/estimate", response_model=ValuationResponse)
 async def estimate(payload: ValuationRequest) -> ValuationResponse:
-    comparables, source = await _comparables(payload.area, payload.property_type)
+    comparables, source = await get_transactions(
+        area=payload.area, property_type=payload.property_type
+    )
     if not comparables:
         raise HTTPException(
             status_code=404,
