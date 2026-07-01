@@ -1,4 +1,2 @@
-# Don't commit bulk data exports (DLD CSVs, KHDA XLSX) — keep docs only.
-*.csv
-*.xlsx
-!README.md
+# DLD/KHDA exports are open government data and are committed here so the
+# Vercel deployment can bundle and serve them. (They contain no personal data.)
