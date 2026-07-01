@@ -8,10 +8,13 @@ import csv
 import glob
 import os
 
+from app.config import settings
 from app.schemas import Transaction
 from app.services import csv_utils
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+# Configurable so a production deploy can mount a disk (see config.data_dir).
+# dld_rent_csv and khda_schools import this same DATA_DIR.
+DATA_DIR = settings.data_dir
 
 # DLD exports use either machine names (from "Download as CSV") or the web
 # table's display names. Each field lists candidates in priority order.

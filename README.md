@@ -10,6 +10,11 @@ DLD transactions, plus what's nearby. Phase 1 scaffold.
 - `frontend/` — Next.js + TypeScript + MapLibre. Address search, valuation
   form, interactive map.
 
+## Deploying
+
+See [DEPLOY.md](DEPLOY.md) — backend to Render (or any Docker host), frontend
+to Vercel, with env-var wiring and how to serve real data in production.
+
 ## Data sources and current status
 
 | Source | Status | Notes |
@@ -73,11 +78,12 @@ returns nothing for; serves everything from Geoapify if Overpass is down).
 market liquidity → one 0–100 rating), and a price-trend chart (median
 price/sqm over time, day/week/month). The trend needs a wide DLD date range to
 be meaningful — the sample export spans only ~3 days, so the chart flags when
-too few time buckets are present. Still open: deployment.
+too few time buckets are present. UI polish (light theme, cards, responsive)
+and deployment configs ([DEPLOY.md](DEPLOY.md)) are in place.
 
-**Phase 3 (not started):** live listings aggregation via a licensed data
-provider or direct agency partnerships; conversational/chat layer on top of
-the valuation and neighborhood data.
+**Later:** live listings aggregation via a licensed data provider or direct
+agency partnerships; conversational/chat layer on top of the valuation and
+neighborhood data.
 
 ## A note on the valuation numbers
 

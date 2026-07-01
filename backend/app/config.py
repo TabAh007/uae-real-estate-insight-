@@ -1,4 +1,8 @@
+import os
+
 from pydantic_settings import BaseSettings
+
+_DEFAULT_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 
 
 class Settings(BaseSettings):
@@ -10,6 +14,11 @@ class Settings(BaseSettings):
     geoapify_api_key: str = ""
 
     cors_origins: str = "http://localhost:3000"
+
+    # Where DLD CSVs / KHDA XLSX are loaded from. Override in production to point
+    # at a mounted disk (e.g. DATA_DIR=/var/data on Render) so real data
+    # survives redeploys without being committed to the repo.
+    data_dir: str = _DEFAULT_DATA_DIR
 
     @property
     def dubai_pulse_configured(self) -> bool:
