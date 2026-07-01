@@ -9,16 +9,27 @@ import httpx
 
 from app.schemas import Poi
 
-# Primary + fallback mirror — the main instance intermittently 406s without
-# these headers, and public Overpass instances occasionally rate-limit.
+# Multiple mirrors — the main instance intermittently 406s without these
+# headers, and any single public Overpass instance can be slow or rate-limited
+# at a given moment, so we fail over across them.
 OVERPASS_URLS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ]
 REQUEST_HEADERS = {
     "Accept": "application/json",
     "User-Agent": "uae-real-estate-insight/0.1 (https://github.com/; contact via repo issues)",
 }
+
+# Public Overpass can be slow under load; give the server directive and the
+# client generous, matching budgets so a busy-but-working mirror still returns.
+SERVER_TIMEOUT_S = 50
+CLIENT_TIMEOUT_S = 55
+
+
+class OverpassUnavailable(RuntimeError):
+    """All Overpass mirrors failed/timed out — surfaced to the client as 503."""
 
 # OSM tag -> our category label
 POI_TAGS = {
@@ -48,9 +59,9 @@ async def find_nearby_pois(lat: float, lon: float, radius_m: int = 1200) -> list
         f'nwr[{tag.split("=")[0]}="{tag.split("=")[1]}"](around:{radius_m},{lat},{lon});'
         for tag in POI_TAGS
     )
-    query = f"[out:json][timeout:20];({clauses});out center;"
+    query = f"[out:json][timeout:{SERVER_TIMEOUT_S}];({clauses});out center;"
 
-    async with httpx.AsyncClient(timeout=25, headers=REQUEST_HEADERS) as client:
+    async with httpx.AsyncClient(timeout=CLIENT_TIMEOUT_S, headers=REQUEST_HEADERS) as client:
         last_error: Exception | None = None
         elements = []
         for url in OVERPASS_URLS:
@@ -62,7 +73,9 @@ async def find_nearby_pois(lat: float, lon: float, radius_m: int = 1200) -> list
             except (httpx.HTTPStatusError, httpx.TransportError) as exc:
                 last_error = exc
         else:
-            raise last_error
+            raise OverpassUnavailable(
+                "All OpenStreetMap Overpass mirrors are slow or unavailable right now"
+            ) from last_error
 
     pois: list[Poi] = []
     for el in elements:

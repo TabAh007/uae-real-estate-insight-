@@ -94,7 +94,7 @@ export default function Home() {
       <aside className="flex w-[420px] shrink-0 flex-col gap-6 overflow-y-auto border-r border-gray-200 p-5">
         <div>
           <h1 className="text-lg font-semibold">UAE Real Estate Insight</h1>
-          <p className="text-sm text-gray-500">Valuation from real Dubai Land Department transactions. Add a Geoapify key to enable address search.</p>
+          <p className="text-sm text-gray-500">Valuation from real Dubai Land Department transactions; neighborhood data from OpenStreetMap.</p>
         </div>
 
         <section className="flex flex-col gap-2">
@@ -112,7 +112,6 @@ export default function Home() {
           >
             {loadingLocation ? "Locating…" : "Locate & show nearby amenities"}
           </button>
-          <p className="text-xs text-gray-400">Requires GEOAPIFY_API_KEY set in backend/.env</p>
         </section>
 
         {neighborhood && (
