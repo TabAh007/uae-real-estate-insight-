@@ -1,7 +1,11 @@
 # UAE Real Estate Insight
 
 Given a property, tells you whether it's priced high or low against comparable
-DLD transactions, plus what's nearby. Phase 1 scaffold.
+DLD transactions, plus what's nearby.
+
+**Live:** https://frontend-mocha-seven-45yiyz34l3.vercel.app
+(frontend on Vercel; FastAPI backend also on Vercel at
+https://backend-theta-mocha-yle4qa6373.vercel.app, serving real DLD data)
 
 ## Architecture
 

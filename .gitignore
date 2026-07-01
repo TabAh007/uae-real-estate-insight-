@@ -11,3 +11,6 @@ frontend/.env.local
 
 # OS
 .DS_Store
+
+# Vercel CLI local project link
+.vercel
