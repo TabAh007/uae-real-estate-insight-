@@ -1,97 +1,58 @@
 # UAE Real Estate Insight
 
-Given a property, tells you whether it's priced high or low against comparable
-DLD transactions, plus what's nearby.
+Given a property, tells you whether it's priced high or low against comparable DLD transactions, plus what's nearby.
 
-**Live:** https://frontend-mocha-seven-45yiyz34l3.vercel.app
-(frontend on Vercel; FastAPI backend also on Vercel at
-https://backend-theta-mocha-yle4qa6373.vercel.app, serving real DLD data)
+**Live:** https://frontend-mocha-seven-45yiyz34l3.vercel.app (backend: https://backend-theta-mocha-yle4qa6373.vercel.app)
 
 ## Architecture
 
-- `backend/` — FastAPI. Comparable-sales valuation, DLD transaction lookup,
-  OpenStreetMap-based neighborhood/POI search, Geoapify geocoding.
-- `frontend/` — Next.js + TypeScript + MapLibre. Address search, valuation
-  form, interactive map.
+- `backend/` — FastAPI. Comparable-sales valuation, DLD transaction lookup, OSM neighborhood/POI search, Geoapify geocoding.
+- `frontend/` — Next.js + TypeScript + MapLibre. Address search, valuation form, interactive map.
 
 ## Deploying
 
-See [DEPLOY.md](DEPLOY.md) — backend to Render (or any Docker host), frontend
-to Vercel, with env-var wiring and how to serve real data in production.
+See [DEPLOY.md](DEPLOY.md) — backend to Render/Docker, frontend to Vercel, with env-var wiring.
 
-## Data sources and current status
+## Data sources
 
-| Source | Status | Notes |
-|---|---|---|
-| DLD open-data **CSV** (recommended, zero credentials) | Ready to use | Download a transactions CSV from https://dubailand.gov.ae/en/open-data/real-estate-data/ (Download as CSV — just a reCAPTCHA, no signup) and drop it in `backend/data/`. Loaded on startup. See `backend/data/README.md`. |
-| Dubai Pulse / DLD **API** | Optional | The programmatic route. Register at dubaipulse.gov.ae for OAuth credentials and fill `backend/.env`. Note: the portal may Cloudflare-block normal browsers by region; the CSV path above avoids this entirely. |
-| OpenStreetMap Overpass | Live, no key needed | Powers "what's nearby." Coverage is strong for metro/malls/landmarks, weaker for residential-area amenities — see `backend/app/services/overpass.py` for the fallback-mirror handling. |
-| KHDA schools XLSX | Optional | Drop `DubaiPrivateSchoolsOpenData.xlsx` in `backend/data/` for rated schools near a property (`/neighborhood/schools`). See `backend/data/README.md`. |
-| Geoapify | **Not yet configured** | Free tier, sign up at geoapify.com. Needed for address → lat/lon geocoding. |
+- **DLD CSV** (recommended) — download from dubailand.gov.ae open data and drop into `backend/data/`. See `backend/data/README.md`.
+- **Dubai Pulse API** (optional) — register at dubaipulse.gov.ae, fill `backend/.env`.
+- **OpenStreetMap Overpass** — live, powers "what's nearby."
+- **KHDA schools XLSX** (optional) — drop into `backend/data/` for school ratings.
+- **Geoapify** — required for geocoding; sign up at geoapify.com.
 
-**Data source priority:** the backend serves the first available of — Dubai
-Pulse API (if credentials set) → a DLD CSV in `backend/data/` → bundled sample
-data. `/health` reports which is active (`dld_csv_rows`, `dubai_pulse_configured`).
-The frontend dropdowns auto-populate from `/properties/facets`, so real
-values (e.g. `Flat` vs the sample data's `Apartment`) appear automatically.
+Priority order: Dubai Pulse → DLD CSV → bundled sample data. `/health` reports which is active.
 
-Do **not** wire this project up to scrape Bayut, Property Finder, or Dubizzle —
-their Terms of Service explicitly prohibit automated collection, and UAE
-cybercrime law carries real exposure for ToS-violating access. See the
-project's chat history / decision notes for the full reasoning. Live listing
-aggregation is a separate business-development track (licensed data
-providers like REIDIN/Property Monitor, or direct agency partnerships), not
-an engineering task.
+Note: this project doesn't scrape Bayut/Property Finder/Dubizzle (against their ToS). Live listing aggregation would need a licensed data provider or agency partnership.
 
 ## Running locally
 
-### Backend
-
-```bash
+**Backend**
+```
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # fill in DUBAI_PULSE_* and GEOAPIFY_API_KEY when you have them
+cp .env.example .env
 uvicorn app.main:app --port 8010 --reload
 ```
+Docs at http://localhost:8010/docs.
 
-API docs at http://localhost:8010/docs. `/health` reports which external
-integrations are configured.
-
-### Frontend
-
-```bash
+**Frontend**
+```
 cd frontend
 npm install
 cp .env.local.example .env.local
 npm run dev
 ```
-
 Open http://localhost:3000.
 
 ## Roadmap
 
-**Phase 1 (this scaffold):** comparable-sales valuation range on sample
-data, live OSM neighborhood search, map view.
+- Phase 1: comparable-sales valuation, live OSM neighborhood search, map view.
+- Phase 2 (done): real DLD sales/rent data, rental yield, KHDA ratings, Geoapify fallback.
+- Phase 3 (done): investment score, price-trend chart, UI polish, deployment configs.
+- Later: live listings aggregation via licensed provider, conversational layer.
 
-**Phase 2 (done):** real DLD sales + rent CSVs, rental-yield, KHDA school
-ratings, and a Geoapify Places fallback (fills any amenity category OSM
-returns nothing for; serves everything from Geoapify if Overpass is down).
+## A note on valuation numbers
 
-**Phase 3 (done):** an investment score (value-vs-comparables + gross yield +
-market liquidity → one 0–100 rating), and a price-trend chart (median
-price/sqm over time, day/week/month). The trend needs a wide DLD date range to
-be meaningful — the sample export spans only ~3 days, so the chart flags when
-too few time buckets are present. UI polish (light theme, cards, responsive)
-and deployment configs ([DEPLOY.md](DEPLOY.md)) are in place.
-
-**Later:** live listings aggregation via a licensed data provider or direct
-agency partnerships; conversational/chat layer on top of the valuation and
-neighborhood data.
-
-## A note on the valuation numbers
-
-The `/valuation/estimate` endpoint intentionally returns a **range** (low/
-median/high from comparable transactions) plus the comparables used, never
-a single point estimate. Don't change this to a bare number — showing false
-precision is how naive AVMs mislead users.
+`/valuation/estimate` returns a range (low/median/high from comparables), never a single point estimate — by design.
